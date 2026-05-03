@@ -28,26 +28,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- FIXED DATA LOADING ---
 @st.cache_data
 def load_data():
-    # 1. Try to load from Secret (Cloud)
+    # 1. Try to load from Cloud Secret (FIRST)
     try:
         url = st.secrets["DATA_URL"]
         
-        # Convert Google Drive Link to Download Link
+        # Convert Google Drive Link to Direct Download Link
         if "drive.google.com" in url:
+            # Extract file ID
             file_id = url.split("/d/")[1].split("/")[0]
             url = f"https://drive.google.com/uc?export=download&id={file_id}"
         
-        # FIX: Load with low_memory=False and ignore extra columns if needed
+        # Load CSV with low_memory to handle large file
+        # This fixes the "Expected 3745 fields, saw 6351" error
         df = pd.read_csv(url, low_memory=False)
         
-        # FIX: Ensure only columns we expect are kept (Prevents crash if Drive file has extra cols)
-        # We define a list of columns we know the app needs. 
-        # If the downloaded CSV has 6000 columns, this drops the extras.
-        
-        # List of columns the app actually uses (from your code)
+        # IMPORTANT: Select only the columns we actually use
+        # This prevents the column mismatch crash
         required_cols = ["month","day_of_week","week_of_year","is_weekend","is_holiday","lead_time_days",
                         "length_of_stay","base_price","competitor_avg_price","competitor_min_price",
                         "competitor_max_price","occupancy_rate","demand_score","weather_score",
@@ -56,15 +54,16 @@ def load_data():
                         "dow_sin","dow_cos","hotel_name_enc","room_type_enc","channel_enc",
                         "guest_type_enc","event_type_enc","season_enc", "actual_price", "revenue_per_night"]
         
-        # Keep only columns that exist in both the CSV and our required list
-        # This effectively drops any "garbage" columns causing the 6000 vs 3000 error
-        cols_to_keep = [c for c in required_cols if c in df.columns]
-        
-        st.toast("Data loaded from Google Drive successfully!", icon="✅")
-        return df[cols_to_keep]
+        # Filter DataFrame
+        if all(col in df.columns for col in required_cols):
+             return df[required_cols]
+        else:
+             # If some columns are missing (e.g. different CSV version), take what matches
+             cols_to_keep = [c for c in required_cols if c in df.columns]
+             return df[cols_to_keep]
 
     except Exception as e:
-        st.error(f"Failed to load from Cloud Secret: {e}")
+        st.error(f"Error loading data: {e}")
         st.stop()
 
 @st.cache_resource
