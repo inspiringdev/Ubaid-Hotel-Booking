@@ -49,6 +49,8 @@ hotel_pricing_project/
  │
  │ 
 ├── main.py # Full pipeline orchestrator
+ │
+├── dashboard_streamlit.py
  │ 
 ├── requirements.txt
  │ 
