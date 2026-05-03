@@ -304,3 +304,14 @@ ipython_config.py
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments
+
+
+data/hotel_booking_data.csv
+
+outputs/models/*.pkl
+
+.streamlit/
+
+# Keep outputs/ folder structure, but ignore heavy generated content
+# Uncomment the line below if you generate massive HTML exports
+# outputs/*.html
