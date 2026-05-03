@@ -33,10 +33,20 @@ st.markdown("""
 @st.cache_data
 def load_data():
     path = "data/hotel_booking_clean.csv"
-    if not os.path.exists(path):
-        st.error("clean dataset not found. run main.py first.")
+    if os.path.exists(path):
+        return pd.read_csv(path)
+
+    try:
+        url = st.secrets["DATA_URL"]
+        
+        file_id = url.split("/d/")[1].split("/")[0]
+        direct_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        
+        return pd.read_csv(direct_url)
+        
+    except Exception as e:
+        st.error(f"Error loading data from cloud: {e}")
         st.stop()
-    return pd.read_csv(path)
 
 @st.cache_resource
 def load_model():
