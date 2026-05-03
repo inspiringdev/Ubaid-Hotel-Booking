@@ -32,15 +32,22 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
-    # 1. Try Cloud FIRST
+    # 1. Try to load from Cloud Secret (FIRST)
     try:
         url = st.secrets["DATA_URL"]
         
+        # Convert Google Drive Link to Direct Download Link
         if "drive.google.com" in url:
+            # Extract file ID
             file_id = url.split("/d/")[1].split("/")[0]
             url = f"https://drive.google.com/uc?export=download&id={file_id}"
         
-        # Load with specific columns to fix the 3745 vs 6351 error
+        # Load CSV with low_memory to handle large file
+        # This fixes the "Expected 3745 fields, saw 6351" error
+        df = pd.read_csv(url, low_memory=False)
+        
+        # IMPORTANT: Select only the columns we actually use
+        # This prevents the column mismatch crash
         required_cols = ["month","day_of_week","week_of_year","is_weekend","is_holiday","lead_time_days",
                         "length_of_stay","base_price","competitor_avg_price","competitor_min_price",
                         "competitor_max_price","occupancy_rate","demand_score","weather_score",
@@ -49,21 +56,17 @@ def load_data():
                         "dow_sin","dow_cos","hotel_name_enc","room_type_enc","channel_enc",
                         "guest_type_enc","event_type_enc","season_enc", "actual_price", "revenue_per_night"]
         
-        df = pd.read_csv(url, low_memory=False)
-        
-        # Keep only columns we need
-        cols_to_keep = [c for c in required_cols if c in df.columns]
-        return df[cols_to_keep]
+        # Filter DataFrame
+        if all(col in df.columns for col in required_cols):
+             return df[required_cols]
+        else:
+             # If some columns are missing (e.g. different CSV version), take what matches
+             cols_to_keep = [c for c in required_cols if c in df.columns]
+             return df[cols_to_keep]
 
     except Exception as e:
-        # 2. Try Local (for your PC)
-        path = "data/hotel_booking_clean.csv"
-        if os.path.exists(path):
-            return pd.read_csv(path)
-        
-        st.error(f"Data load failed. Error: {e}")
+        st.error(f"Error loading data: {e}")
         st.stop()
-
 @st.cache_resource
 def load_model():
     candidates = [
