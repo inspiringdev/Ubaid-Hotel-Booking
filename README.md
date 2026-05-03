@@ -67,17 +67,27 @@ pip install -r requirements.txt
 ```
 ---
 
-### 2. Run the Pipeline
+### 2. Dataset Download
+1.  Download the `hotel_booking_demand.csv` file from [Kaggle](https://www.kaggle.com/datasets/jessemostipak/hotel-booking-demand).
+2.  Place the file in the `data/` directory and rename it to `hotel_booking_data.csv`.
+
+
+### 3. Run the Pipeline
 Execute the full data processing and model training pipeline:
 ```bash
 python main.py
 ```
 
-### 3. Launch Dashboard
+### 4. Launch Dashboard
 Run the interactive Streamlit dashboard to visualize results:
 ```bash
-streamlit run src/streamlit_dashboard.py
+streamlit run streamlit_dashboard.py
 ```
 *(Note: Ensure `outputs/models/` contains the trained `.pkl` files for the dashboard to function).*
 
 ---
+
+
+---
+
+
