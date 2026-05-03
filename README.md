@@ -53,3 +53,50 @@ hotel_pricing_project/
 ├── requirements.txt
  │ 
 └── README.md"""
+
+```
+## Quick Start
+
+
+
+### 1. Setup Environment
+
+Clone the repository and install dependencies:
+
+```bash
+
+git clone https://github.com/inspiringdev/Ubaid-Hotel-Booking.git
+
+cd Ubaid-Hotel-Booking
+
+pip install -r requirements.txt
+
+```
+
+### 2. Run the Pipeline
+
+Execute the full data processing and model training pipeline:
+
+```bash
+
+python main.py
+
+```
+
+
+
+### 3. Launch Dashboard
+
+Run the interactive Streamlit dashboard to visualize results:
+
+```bash
+
+streamlit run src/app.py
+
+```
+
+*(Note: Ensure `outputs/models/` contains the trained `.pkl` files for the dashboard to function).*
+
+
+
+---
