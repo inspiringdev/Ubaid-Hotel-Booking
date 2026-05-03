@@ -32,11 +32,37 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
-    path = "data/hotel_booking_clean.csv"
-    if not os.path.exists(path):
-        st.error("clean dataset not found. run main.py first.")
+    # 1. Try Cloud FIRST
+    try:
+        url = st.secrets["DATA_URL"]
+        
+        if "drive.google.com" in url:
+            file_id = url.split("/d/")[1].split("/")[0]
+            url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        
+        # Load with specific columns to fix the 3745 vs 6351 error
+        required_cols = ["month","day_of_week","week_of_year","is_weekend","is_holiday","lead_time_days",
+                        "length_of_stay","base_price","competitor_avg_price","competitor_min_price",
+                        "competitor_max_price","occupancy_rate","demand_score","weather_score",
+                        "reviews_score","event_magnitude","repeat_guest","has_event","high_demand",
+                        "price_vs_comp_avg","price_vs_comp_min","price_comp_spread","price_premium","month_sin","month_cos",
+                        "dow_sin","dow_cos","hotel_name_enc","room_type_enc","channel_enc",
+                        "guest_type_enc","event_type_enc","season_enc", "actual_price", "revenue_per_night"]
+        
+        df = pd.read_csv(url, low_memory=False)
+        
+        # Keep only columns we need
+        cols_to_keep = [c for c in required_cols if c in df.columns]
+        return df[cols_to_keep]
+
+    except Exception as e:
+        # 2. Try Local (for your PC)
+        path = "data/hotel_booking_clean.csv"
+        if os.path.exists(path):
+            return pd.read_csv(path)
+        
+        st.error(f"Data load failed. Error: {e}")
         st.stop()
-    return pd.read_csv(path)
 
 @st.cache_resource
 def load_model():
