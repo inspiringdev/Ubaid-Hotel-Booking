@@ -28,36 +28,49 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-#this is the data & model loading
-
+# --- FIXED DATA LOADING ---
 @st.cache_data
 def load_data():
-    path = "data/hotel_booking_clean.csv"
-    if os.path.exists(path):
-        return pd.read_csv(path)
-
+    # 1. Try to load from Secret (Cloud)
     try:
         url = st.secrets["DATA_URL"]
         
-        file_id = url.split("/d/")[1].split("/")[0]
-        direct_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        # Convert Google Drive Link to Download Link
+        if "drive.google.com" in url:
+            file_id = url.split("/d/")[1].split("/")[0]
+            url = f"https://drive.google.com/uc?export=download&id={file_id}"
         
-        return pd.read_csv(direct_url)
+        # FIX: Load with low_memory=False and ignore extra columns if needed
+        df = pd.read_csv(url, low_memory=False)
         
+        # FIX: Ensure only columns we expect are kept (Prevents crash if Drive file has extra cols)
+        # We define a list of columns we know the app needs. 
+        # If the downloaded CSV has 6000 columns, this drops the extras.
+        
+        # List of columns the app actually uses (from your code)
+        required_cols = ["month","day_of_week","week_of_year","is_weekend","is_holiday","lead_time_days",
+                        "length_of_stay","base_price","competitor_avg_price","competitor_min_price",
+                        "competitor_max_price","occupancy_rate","demand_score","weather_score",
+                        "reviews_score","event_magnitude","repeat_guest","has_event","high_demand",
+                        "price_vs_comp_avg","price_vs_comp_min","price_comp_spread","price_premium","month_sin","month_cos",
+                        "dow_sin","dow_cos","hotel_name_enc","room_type_enc","channel_enc",
+                        "guest_type_enc","event_type_enc","season_enc", "actual_price", "revenue_per_night"]
+        
+        # Keep only columns that exist in both the CSV and our required list
+        # This effectively drops any "garbage" columns causing the 6000 vs 3000 error
+        cols_to_keep = [c for c in required_cols if c in df.columns]
+        
+        st.toast("Data loaded from Google Drive successfully!", icon="✅")
+        return df[cols_to_keep]
+
     except Exception as e:
-        st.error(f"Error loading data from cloud: {e}")
+        st.error(f"Failed to load from Cloud Secret: {e}")
         st.stop()
 
 @st.cache_resource
 def load_model():
-    candidates = [
-        "outputs/models/best_model_rf.pkl",
-        "outputs/models/best_xgb_tuned.pkl",
-    ]
-    for path in candidates:
-        if os.path.exists(path):
-            with open(path, "rb") as f:
-                return pickle.load(f)
+    # We are skipping model loading to avoid the 600MB pkl file issue
+    # The app will use the fallback math formula for recommendations
     return None
 
 df   = load_data()
@@ -83,8 +96,8 @@ class ROICalculator:
 
     def calculate_roi(self, num_rooms, avg_occupancy, current_avg_rate):
         current_annual = num_rooms * 365 * avg_occupancy * current_avg_rate
-        new_annual = current_annual * (1 + self.LIFT_PCT)
-        incremental = new_annual - current_annual
+        new_annual      = current_annual * (1 + self.LIFT_PCT)
+        incremental     = new_annual - current_annual
         total_year1_cost = self.IMPLEMENTATION_COST + self.ANNUAL_LICENSE
 
         # 5-year calculations
@@ -98,11 +111,11 @@ class ROICalculator:
         payback_months = round((total_year1_cost / incremental) * 12, 1) if incremental > 0 else 999
 
         return {
-            "current_revenue": round(current_annual, 0),
-            "projected_revenue": round(new_annual, 0),
+            "current_revenue":     round(current_annual, 0),
+            "projected_revenue":   round(new_annual, 0),
             "incremental_revenue": round(incremental, 0),
-            "payback_months": payback_months,
-            "five_year_roi_ratio": round(five_year_roi_ratio, 2),  #changed from pct to ratio
+            "payback_months":      payback_months,
+            "five_year_roi_ratio":   round(five_year_roi_ratio, 2),  #changed from pct to ratio
         }
 
 
@@ -123,7 +136,7 @@ st.sidebar.caption(f"dataset: {len(df):,} bookings")
 if model:
     st.sidebar.caption("model: loaded ✓")
 else:
-    st.sidebar.caption("model: not found (run main.py first)")
+    st.sidebar.caption("model: not found (using math fallback)")
 
 
 #this is page 1: overview
@@ -400,7 +413,7 @@ elif page == "price recommender":
         st.info(f" payback period: {roi['payback_months']} months")
 
         c1, c2, c3 = st.columns(3)
-        c1.metric("current annual revenue", f"${roi['current_revenue']:,.0f}")
+        c1.metric("current annual revenue",   f"${roi['current_revenue']:,.0f}")
         c2.metric("projected annual revenue", f"${roi['projected_revenue']:,.0f}")
 
         c3.metric("5-year roi (per $1 spent)", f"${roi['five_year_roi_ratio']}")
@@ -492,4 +505,4 @@ elif page == "business insights":
     | 3 | A/B Test: ML vs. Static Pricing | Validate the revenue uplift suggested by the recommendation engine. |
     | 4 | Monitor Q-Learning Agent | Continue training to reduce exploration rate and lower MAPE below 15%. |
     | 5 | Retune Hyperparameters Quarterly | To maintain the CV R² score above 0.95. |
-    """)
+    """) 
