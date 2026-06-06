@@ -1,0 +1,3 @@
+Data has been taken from the Kaggle hotel pricing dataset. Therefor you need to download the csv file in this folder. 
+The data values in the csv needed improvements and therefor I preprocessed and cleaned the dataset. Therefor a preprocessed csv file optimal for model learning was created
+if you feel the need to preprocess data then execute the preprocessing script, otherwise carry on with this dataset
